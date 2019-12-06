@@ -1,0 +1,45 @@
+tasks:
+   - name: Create report directory if it does not exist
+     file:
+       path: /tmp/report
+       state: directory
+
+   - name: Check if passwd is present in /tmp directory
+     stat:
+       path: /tmp/passwd
+     register: status
+
+   - name: If not present then copy the passwd file to /tmp directory
+     copy:
+       remote_src: yes
+       src: /etc/passwd
+       dest: /tmp/passwd
+     when: status.stat.exists == false
+
+   - debug: msg="Initial setup done. Please run the playbook again."
+     when: status.stat.exists == false
+   - meta: end_play
+     when: status.stat.exists == false
+
+   - name: compare files
+     shell: diff /tmp/passwd /etc/passwd |grep ">\|<"| sed 's/>/added   /'|sed 's/</removed /'
+     register: result
+
+   - name: save the report
+     lineinfile:
+       dest: /tmp/report/{{ansible_date_time.date}}
+       create: yes
+       state: present
+       line: "{{ result.stdout }}"
+
+   - name: Copy the currunt passwd file to tmp directory
+     copy:
+       remote_src: yes
+       src: /etc/passwd
+       dest: /tmp/passwd
+       force: yes
+
+   - name: Store files into control host
+     fetch:
+       src: /tmp/report/{{ansible_date_time.date}}
+       dest: /tmp/reports

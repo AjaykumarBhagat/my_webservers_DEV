@@ -1,5 +1,5 @@
 - name: perform yum update and reboot server
-  #hosts: centos
+  hosts: rhel
   become: true
   vars:
   tasks:
